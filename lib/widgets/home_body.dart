@@ -286,64 +286,117 @@ class HomeBodyState extends State<HomeBody> {
         .textTheme
         .apply(displayColor: textColor, bodyColor: textColor);
 
-    return Card(
-      elevation: 2,
-      color: cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Información de la Clase',
-                style: textTheme.titleLarge
-                    ?.copyWith(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 24),
-            DocenteForm(
-              docentes: docentes,
-              value: docenteSeleccionado,
-              onChanged: (value) {
-                setState(() {
-                  docenteSeleccionado = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            MateriaForm(
-              materias: materias,
-              value: materiaSeleccionada,
-              onChanged: (value) {
-                setState(() {
-                  materiaSeleccionada = value;
-                });
-              },
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  flex: 2,
-                  child: DateForm(
-                    selectedDate: selectedDate,
-                    onTap: () => _selectDate(context),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 1,
-                  child: HoraForm(
-                    horas: horas,
-                    value: horaSeleccionada,
-                    onChanged: (value) {
-                      setState(() {
-                        horaSeleccionada = value;
-                      });
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return Container(
+      width: MediaQuery.of(context).size.width * 0.9,
+      child: Card(
+        elevation: 2,
+        color: cardColor,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 600) {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Información de la Clase',
+                        style: textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+                    DocenteForm(
+                      docentes: docentes,
+                      value: docenteSeleccionado,
+                      onChanged: (value) {
+                        setState(() {
+                          docenteSeleccionado = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    MateriaForm(
+                      materias: materias,
+                      value: materiaSeleccionada,
+                      onChanged: (value) {
+                        setState(() {
+                          materiaSeleccionada = value;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    DateForm(
+                      selectedDate: selectedDate,
+                      onTap: () => _selectDate(context),
+                    ),
+                    const SizedBox(height: 16),
+                    HoraForm(
+                      horas: horas,
+                      value: horaSeleccionada,
+                      onChanged: (value) {
+                        setState(() {
+                          horaSeleccionada = value;
+                        });
+                      },
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Información de la Clase',
+                        style: textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 24),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        DocenteForm(
+                          docentes: docentes,
+                          value: docenteSeleccionado,
+                          onChanged: (value) {
+                            setState(() {
+                              docenteSeleccionado = value;
+                            });
+                          },
+                        ),
+                        MateriaForm(
+                          materias: materias,
+                          value: materiaSeleccionada,
+                          onChanged: (value) {
+                            setState(() {
+                              materiaSeleccionada = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 16,
+                      runSpacing: 16,
+                      children: [
+                        DateForm(
+                          selectedDate: selectedDate,
+                          onTap: () => _selectDate(context),
+                        ),
+                        HoraForm(
+                          horas: horas,
+                          value: horaSeleccionada,
+                          onChanged: (value) {
+                            setState(() {
+                              horaSeleccionada = value;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                );
+              }
+            },
+          ),
         ),
       ),
     );
@@ -421,47 +474,46 @@ class HomeBodyState extends State<HomeBody> {
       );
     }
 
-    return SizedBox(
-      height: 300,
-      child: Scrollbar(
-        thumbVisibility: true,
-        child: ListView.separated(
-          itemCount: estudiantes.length,
-          separatorBuilder: (context, index) => const Divider(height: 1),
-          itemBuilder: (context, index) {
-            final estudiante = estudiantes[index];
-            final isSelected = estudiantesSeleccionados.contains(estudiante);
-            return Column(
-              children: [
-                CheckboxListTile(
-                  secondary:
-                      const Icon(Icons.person_outline, color: primaryColor),
-                  title: Text(estudiante,
-                      style: const TextStyle(color: textColor)),
-                  value: isSelected,
-                  activeColor: primaryColor,
-                  onChanged: (checked) {
-                    setState(() {
-                      if (checked == true) {
-                        estudiantesSeleccionados.add(estudiante);
-                        motivoPorEstudiante.putIfAbsent(
-                            estudiante, () => 'Sin excusa');
-                      } else {
-                        estudiantesSeleccionados.remove(estudiante);
-                        motivoPorEstudiante.remove(estudiante);
-                      }
-                    });
-                  },
+    return Scrollbar(
+      thumbVisibility: true,
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: estudiantes.length,
+        separatorBuilder: (context, index) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final estudiante = estudiantes[index];
+          final isSelected = estudiantesSeleccionados.contains(estudiante);
+          return Column(
+            children: [
+              CheckboxListTile(
+                secondary:
+                    const Icon(Icons.person_outline, color: primaryColor),
+                title: Text(estudiante,
+                    style: const TextStyle(color: textColor)),
+                value: isSelected,
+                activeColor: primaryColor,
+                onChanged: (checked) {
+                  setState(() {
+                    if (checked == true) {
+                      estudiantesSeleccionados.add(estudiante);
+                      motivoPorEstudiante.putIfAbsent(
+                          estudiante, () => 'Sin excusa');
+                    } else {
+                      estudiantesSeleccionados.remove(estudiante);
+                      motivoPorEstudiante.remove(estudiante);
+                    }
+                  });
+                },
+              ),
+              if (isSelected)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(72.0, 0, 16.0, 16.0),
+                  child: _buildMotivoDropdown(estudiante),
                 ),
-                if (isSelected)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(72.0, 0, 16.0, 16.0),
-                    child: _buildMotivoDropdown(estudiante),
-                  ),
-              ],
-            );
-          },
-        ),
+            ],
+          );
+        },
       ),
     );
   }
@@ -730,7 +782,7 @@ class DateForm extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: <Widget>[
             Text(
-              DateFormat.yMMMMd('es').format(selectedDate),
+              DateFormat.yMd('es').format(selectedDate),
               style: const TextStyle(color: textColor),
             ),
             const Icon(Icons.arrow_drop_down, color: primaryColor),

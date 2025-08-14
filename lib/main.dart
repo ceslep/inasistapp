@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:io' show Platform;
-import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'widgets/home_body.dart';
+import 'package:inasistapp/screens/home_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -75,61 +74,7 @@ class MainApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const MyHomePage(),
-    );
-  }
-}
-
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
-  final GlobalKey<HomeBodyState> homeBodyKey = GlobalKey<HomeBodyState>();
-  bool _appBarIsSending = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          'Registro de Inasistencias',
-          style: TextStyle(color: Colors.white),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () {
-              SystemNavigator.pop();
-            },
-          ),
-          IconButton(
-            icon: _appBarIsSending
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                        strokeWidth: 2, color: Colors.white))
-                : Icon(Icons.send, color: Theme.of(context).colorScheme.onPrimary),
-            onPressed: () {
-              homeBodyKey.currentState?.submitAbsenceData();
-            },
-          ),
-        ],
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        foregroundColor: Theme.of(context).colorScheme.onPrimary,
-      ),
-      body: HomeBody(
-        key: homeBodyKey,
-        onSendingStateChanged: (isSending) {
-          setState(() {
-            _appBarIsSending = isSending;
-          });
-        },
-      ),
+      home: const HomeScreen(),
     );
   }
 }

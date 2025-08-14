@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:gsheets/gsheets.dart';
 
@@ -12,7 +11,8 @@ class GoogleSheetsService {
 
   Future<void> init() async {
     try {
-      final credentialsJson = await rootBundle.loadString('assets/serviceaccount.json');
+      final credentialsJson =
+          await rootBundle.loadString('assets/serviceaccount.json');
       _gsheets = GSheets(credentialsJson);
       final spreadsheet = await _gsheets!.spreadsheet(_spreadsheetId);
       _worksheet = spreadsheet.worksheetByTitle(_worksheetName);
