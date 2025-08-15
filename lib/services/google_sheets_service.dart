@@ -36,4 +36,18 @@ class GoogleSheetsService {
       return false;
     }
   }
+
+  Future<List<List<dynamic>>> getRows() async {
+    try {
+      if (_gsheets == null) {
+        await init();
+      }
+      if (_worksheet == null) return [];
+      return await _worksheet!.values.allRows();
+    } catch (e) {
+      // ignore: avoid_print
+      print('Error getting rows from Google Sheets: $e');
+      return [];
+    }
+  }
 }

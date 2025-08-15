@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 void main() async {
   final dio = Dio();
@@ -9,14 +10,14 @@ void main() async {
     if (response.statusCode == 200) {
       final List<dynamic> data =
           response.data is String ? json.decode(response.data) : response.data;
-      print('Docentes recibidos:');
+      debugPrint('Docentes recibidos:');
       for (var docente in data) {
-        print(docente);
+        debugPrint(docente.toString());
       }
     } else {
-      print('Error al obtener los docentes: ${response.statusCode}');
+      debugPrint('Error al obtener los docentes: ${response.statusCode}');
     }
   } catch (e) {
-    print('Error de conexión: $e');
+    debugPrint('Error de conexión: $e');
   }
 }

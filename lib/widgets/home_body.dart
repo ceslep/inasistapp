@@ -421,10 +421,10 @@ class HomeBodyState extends State<HomeBody> {
                     ?.copyWith(fontWeight: FontWeight.bold)),
             const SizedBox(height: 24),
             DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Seleccione el grado',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.school_outlined, color: primaryColor),
+                prefixIcon: Icon(Icons.school_outlined, color: Color(0xFF0D47A1)),
               ),
               value: gradoSeleccionado,
               items: grados
@@ -624,7 +624,7 @@ class HomeBodyState extends State<HomeBody> {
           DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()), // Timestamp for Column A
           docenteSeleccionado,
           DateFormat('yyyy-MM-dd').format(selectedDate),
-          '${horaSeleccionada!} ${horaSeleccionada == '1' ? 'hora' : 'horas'}',
+          horaSeleccionada!,
           materiaSeleccionada,
           motivoPorEstudiante[estudiante] ?? 'Sin excusa',
           gradoSeleccionado,
@@ -670,7 +670,7 @@ class DocenteForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Docente',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.school_outlined, color: primaryColor),
@@ -686,8 +686,8 @@ class DocenteForm extends StatelessWidget {
                     value: docente,
                     child: Row(
                       children: [
-                        Icon(Icons.class_, color: primaryColor, size: 20),
-                        SizedBox(width: 8),
+                        const Icon(Icons.class_, color: primaryColor, size: 20),
+                        const SizedBox(width: 8),
                         Text(docente),
                       ],
                     ),
@@ -708,7 +708,7 @@ class MateriaForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Materia',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.menu_book_outlined, color: primaryColor),
@@ -724,8 +724,8 @@ class MateriaForm extends StatelessWidget {
                     value: materia,
                     child: Row(
                       children: [
-                        Icon(Icons.auto_stories, color: successColor, size: 20),
-                        SizedBox(width: 8),
+                        const Icon(Icons.auto_stories, color: successColor, size: 20),
+                        const SizedBox(width: 8),
                         Text(materia),
                       ],
                     ),
@@ -745,7 +745,7 @@ class HoraForm extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Hora',
         border: OutlineInputBorder(),
         prefixIcon: Icon(Icons.access_time_outlined, color: primaryColor),
@@ -773,7 +773,7 @@ class DateForm extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
-        decoration: const InputDecoration(
+        decoration: InputDecoration(
           labelText: 'Fecha',
           border: OutlineInputBorder(),
           prefixIcon: Icon(Icons.calendar_today_outlined, color: primaryColor),

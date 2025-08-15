@@ -53,7 +53,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
         _loadingAsignaturas = false;
       });
       // Handle error
-      print(e);
+      debugPrint(e.toString());
     }
   }
 
@@ -75,7 +75,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
         _loadingDiarioOptions = false;
       });
       // Handle error
-      print(e);
+      debugPrint(e.toString());
     }
   }
 
@@ -464,9 +464,11 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
 
         await sheetsService.appendRow(row);
 
+        if (!mounted) return;
         _showSuccessDialog(context);
         _clearForm();
       } catch (e) {
+        if (!mounted) return;
         _showErrorDialog(context, 'Error al guardar la nota: $e');
       } finally {
         setState(() {

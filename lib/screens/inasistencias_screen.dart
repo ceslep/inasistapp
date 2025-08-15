@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:inasistapp/widgets/home_body.dart';
+import 'package:inasistapp/screens/estadisticas_screen.dart'; // New import
 
 class InasistenciasScreen extends StatefulWidget {
   const InasistenciasScreen({super.key});
@@ -23,6 +24,17 @@ class _InasistenciasScreenState extends State<InasistenciasScreen> {
           style: TextStyle(color: Colors.white),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.bar_chart), // Statistics icon
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const EstadisticasScreen()),
+              );
+            },
+            tooltip: 'Estadísticas',
+          ),
           IconButton(
             icon: const Icon(Icons.exit_to_app),
             onPressed: () {
