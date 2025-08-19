@@ -1,37 +1,29 @@
 import 'package:flutter/material.dart';
-import 'package:inasistapp/screens/student_details_screen.dart';
-import 'package:inasistapp/screens/grupos_screen.dart'; // Import for GruposScreen
 import 'package:inasistapp/services/google_sheets_service.dart';
-import 'package:dio/dio.dart'; // Import Dio for potential network errors
+import 'package:dio/dio.dart';
+import 'package:inasistapp/screens/student_details_screen.dart';
 
-class EstadisticasScreen extends StatefulWidget {
-  const EstadisticasScreen({super.key});
+class StudentsInGroupScreen extends StatefulWidget {
+  final String groupName;
+
+  const StudentsInGroupScreen({super.key, required this.groupName});
 
   @override
-  State<EstadisticasScreen> createState() => _EstadisticasScreenState();
+  State<StudentsInGroupScreen> createState() => _StudentsInGroupScreenState();
 }
 
-class _EstadisticasScreenState extends State<EstadisticasScreen> {
-  List<Map<String, String>> _students = [];
-  List<Map<String, String>> _filteredStudents = [];
+class _StudentsInGroupScreenState extends State<StudentsInGroupScreen> {
   bool _isLoading = true;
   String? _error;
-  final TextEditingController _searchController = TextEditingController();
+  List<Map<String, String>> _studentsInGroup = [];
 
   @override
   void initState() {
     super.initState();
-    _fetchStudents();
-    _searchController.addListener(_filterStudents);
+    _fetchStudentsInGroup();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _fetchStudents() async {
+  Future<void> _fetchStudentsInGroup() async {
     setState(() {
       _isLoading = true;
       _error = null;
@@ -45,11 +37,12 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
       final List<List<dynamic>> rows = await sheetsService.getRows();
 
       if (rows.isNotEmpty) {
-        final List<List<dynamic>> dataRows = rows.sublist(1);
+        final List<List<dynamic>> dataRows = rows.sublist(1); // Skip header row
+        List<Map<String, String>> tempStudents = [];
         Set<String> uniqueStudentIdentifiers = {};
-        List<Map<String, String>> studentDetails = [];
 
         for (var row in dataRows) {
+          // Assuming student name is at index 8 and grade (group) is at index 6
           if (row.length > 8 &&
               row[8] != null &&
               row.length > 6 &&
@@ -58,23 +51,21 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
             final grade = row[6].toString();
             final identifier = "$studentName-$grade";
 
-            if (uniqueStudentIdentifiers.add(identifier)) {
-              studentDetails.add({'name': studentName, 'grade': grade});
+            if (grade == widget.groupName &&
+                uniqueStudentIdentifiers.add(identifier)) {
+              tempStudents.add({'name': studentName, 'grade': grade});
             }
           }
         }
-
-        studentDetails.sort((a, b) => a['name']!.compareTo(b['name']!));
-        _students = studentDetails;
-        _filteredStudents = _students;
+        tempStudents.sort((a, b) => a['name']!.compareTo(b['name']!));
+        _studentsInGroup = tempStudents;
       } else {
-        _students = [];
-        _filteredStudents = [];
+        _studentsInGroup = [];
       }
     } on DioException catch (e) {
       _error = 'Error de red: ${e.message}';
     } catch (e) {
-      debugPrint('Error fetching students: $e');
+      debugPrint('Error fetching students in group: $e');
       _error =
           'Error al cargar estudiantes. Verifique la conexión, los permisos de la hoja de cálculo o el formato de los datos: $e';
     } finally {
@@ -84,62 +75,17 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
     }
   }
 
-  void _filterStudents() {
-    final query = _searchController.text.toLowerCase();
-    setState(() {
-      _filteredStudents = _students.where((student) {
-        final studentName = student['name']?.toLowerCase() ?? '';
-        final grade = student['grade']?.toLowerCase() ?? '';
-        return studentName.contains(query) || grade.contains(query);
-      }).toList();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Estadísticas de Estudiantes',
-          style: TextStyle(
+        title: Text(
+          'Estudiantes en ${widget.groupName}',
+          style: const TextStyle(
               fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.group),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GruposScreen(),
-                ),
-              );
-            },
-          ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(kToolbarHeight),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Buscar por nombre o grado...',
-                hintStyle: const TextStyle(color: Colors.white70),
-                prefixIcon: const Icon(Icons.search, color: Colors.white),
-                filled: true,
-                fillColor: const Color.fromRGBO(255, 255, 255, 0.2),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -157,19 +103,21 @@ class _EstadisticasScreenState extends State<EstadisticasScreen> {
                         ),
                         const SizedBox(height: 16),
                         ElevatedButton(
-                          onPressed: _fetchStudents,
+                          onPressed: _fetchStudentsInGroup,
                           child: const Text('Reintentar'),
                         ),
                       ],
                     ),
                   ),
                 )
-              : _filteredStudents.isEmpty
-                  ? const Center(child: Text('No se encontraron estudiantes.'))
+              : _studentsInGroup.isEmpty
+                  ? const Center(
+                      child:
+                          Text('No se encontraron estudiantes en este grupo.'))
                   : ListView.builder(
-                      itemCount: _filteredStudents.length,
+                      itemCount: _studentsInGroup.length,
                       itemBuilder: (context, index) {
-                        final student = _filteredStudents[index];
+                        final student = _studentsInGroup[index];
                         final studentName =
                             student['name'] ?? 'Nombre no disponible';
                         final grade = student['grade'] ?? 'Grado no disponible';
