@@ -19,6 +19,13 @@ class _InasistenciasScreenState extends State<InasistenciasScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false);
+          },
+        ),
         title: const Text(
           'Registro de Inasistencias',
           style: TextStyle(color: Colors.white),

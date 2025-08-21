@@ -7,6 +7,13 @@ class ConvivenciaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false);
+          },
+        ),
         title: const Text('Convivencia'),
       ),
       body: const Center(

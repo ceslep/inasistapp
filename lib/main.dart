@@ -3,6 +3,7 @@ import 'dart:io' show Platform;
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:inasistapp/screens/home_screen.dart';
+import 'package:inasistapp/screens/settings_screen.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
@@ -75,6 +76,10 @@ class MainApp extends StatelessWidget {
         ),
       ),
       home: const HomeScreen(),
+      routes: {
+        '/home': (context) => const HomeScreen(),
+        '/settings': (context) => const SettingsScreen(),
+      },
     );
   }
 }

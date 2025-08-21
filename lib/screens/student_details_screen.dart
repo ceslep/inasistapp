@@ -1,10 +1,21 @@
 import 'dart:collection';
+import 'dart:io';
+import 'dart:typed_data'; // Added
+import 'dart:ui' as ui; // Added
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart'; // Added
 import 'package:inasistapp/services/google_sheets_service.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+
+import 'package:open_file/open_file.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:pdf/pdf.dart'; // Added
+import 'package:pdf/widgets.dart' as pw;
+import 'package:share_plus/share_plus.dart';
+
 
 class StudentDetailsScreen extends StatefulWidget {
   final String studentName;
@@ -25,6 +36,28 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   String? _error;
   Map<String, List<String>> _absencesBySubject = {};
   final Map<String, Color> _subjectColors = {};
+  final GlobalKey _chartKey = GlobalKey(); // Added
+
+  Future<Uint8List?> _capturePng(GlobalKey key) async {
+    if (key.currentContext == null) {
+      debugPrint('Chart key context is null.');
+      return null;
+    }
+    RenderRepaintBoundary? boundary =
+        key.currentContext!.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) {
+      debugPrint('Chart boundary is null.');
+      return null;
+    }
+    ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+    ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    if (byteData == null) {
+      debugPrint('Chart byteData is null.');
+      return null;
+    }
+    debugPrint('Chart image captured successfully. Size: ${byteData.lengthInBytes} bytes');
+    return byteData.buffer.asUint8List();
+  }
 
   @override
   void initState() {
@@ -33,15 +66,15 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   }
 
   Future<void> _fetchAbsences() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final sheetsService = GoogleSheetsService(
-          '1wN7lp7lOGyxKYIUJ9TU89N9knnJjX2Z_TfsOUg48QpQ', 'Inasistencias');
-      await sheetsService.init();
+      final sheetsService = GoogleSheetsService();
+      await sheetsService.init(); // It will load from shared_preferences
 
       final List<List<dynamic>> rows = await sheetsService.getRows();
 
@@ -84,6 +117,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
       debugPrint('Error fetching absences: $e');
       _error = 'Error al cargar las inasistencias: $e';
     } finally {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -155,10 +189,29 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false);
+          },
+        ),
         title: Text(widget.studentName,
             style: const TextStyle(color: Colors.white)),
         backgroundColor: Theme.of(context).colorScheme.primary,
         foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            onPressed: _sharePdf,
+            tooltip: 'Compartir PDF',
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _generatePdf,
+        backgroundColor: Colors.limeAccent,
+        child: const Icon(Icons.picture_as_pdf),
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -230,14 +283,17 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                               textAlign: TextAlign.center,
                             ),
                             const SizedBox(height: 20),
-                            SizedBox(
-                              height: 200,
-                              child: PieChart(
-                                PieChartData(
-                                  sections: _getSections(),
-                                  borderData: FlBorderData(show: false),
-                                  sectionsSpace: 0,
-                                  centerSpaceRadius: 40,
+                            RepaintBoundary(
+                              key: _chartKey,
+                              child: SizedBox(
+                                height: 200,
+                                child: PieChart(
+                                  PieChartData(
+                                    sections: _getSections(),
+                                    borderData: FlBorderData(show: false),
+                                    sectionsSpace: 0,
+                                    centerSpaceRadius: 40,
+                                  ),
                                 ),
                               ),
                             ),
@@ -272,5 +328,183 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                       ),
                     ),
     );
+  }
+
+  Future<void> _generatePdf() async {
+    final pdf = pw.Document();
+
+    final chartImage = await _capturePng(_chartKey);
+
+    pdf.addPage(
+      pw.MultiPage( // Changed from pw.Page to pw.MultiPage
+        build: (pw.Context context) {
+          return [ // MultiPage build returns a List of Widgets
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Reporte de Inasistencias',
+                    style: pw.TextStyle(
+                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 20),
+                pw.Text('Estudiante: ${widget.studentName}'),
+                pw.Text('Grado: ${widget.grade}'),
+                pw.SizedBox(height: 20),
+                pw.Text('Inasistencias por Asignatura:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 10),
+                ..._absencesBySubject.entries.map((entry) {
+                  final subject = entry.key;
+                  final dates = entry.value;
+                  return pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(subject,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text(dates.map((date) => '- $date').join('\n')), // Join dates into a single string
+                      pw.SizedBox(height: 10),
+                    ],
+                  );
+                }),
+                if (chartImage != null) ...[
+                  pw.SizedBox(height: 20),
+                  pw.Text('Distribución de Inasistencias por Asignatura:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 10),
+                  pw.Center(
+                    child: pw.Image(pw.MemoryImage(chartImage), width: 400, height: 400), // Increased size
+                  ),
+                pw.SizedBox(height: 20), // Added space
+                pw.Column( // Added column for percentages
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: _absencesBySubject.entries.map((entry) {
+                    final subject = entry.key;
+                    final count = entry.value.length;
+                    final totalAbsences = _absencesBySubject.values.fold<int>(0, (sum, dates) => sum + dates.length);
+                    final percentage = (count / totalAbsences) * 100;
+                    final color = _subjectColors[subject]!; // Get color from map
+
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4.0),
+                      child: pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 16,
+                            height: 16,
+                            color: PdfColor.fromInt(color.value), // Converted to PdfColor
+                          ),
+                          pw.SizedBox(width: 8),
+                          pw.Text('$subject: $count inasistencias (${percentage.toStringAsFixed(1)}%)'),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                ],
+              ],
+            ),
+          ]; // MultiPage build returns a List of Widgets
+        },
+      ),
+    );
+
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/reporte_${widget.studentName}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    // Open the generated PDF
+    await OpenFile.open(file.path);
+  }
+
+  Future<void> _sharePdf() async {
+    final pdf = pw.Document();
+
+    final chartImage = await _capturePng(_chartKey);
+
+    pdf.addPage(
+      pw.MultiPage( // Changed from pw.Page to pw.MultiPage
+        build: (pw.Context context) {
+          return [ // MultiPage build returns a List of Widgets
+            pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text('Reporte de Inasistencias',
+                    style: pw.TextStyle(
+                        fontSize: 24, fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 20),
+                pw.Text('Estudiante: ${widget.studentName}'),
+                pw.Text('Grado: ${widget.grade}'),
+                pw.SizedBox(height: 20),
+                pw.Text('Inasistencias por Asignatura:',
+                    style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                pw.SizedBox(height: 10),
+                ..._absencesBySubject.entries.map((entry) {
+                  final subject = entry.key;
+                  final dates = entry.value;
+                  return pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      pw.Text(subject,
+                          style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                      pw.Text(dates.map((date) => '- $date').join('\n')), // Join dates into a single string
+                      pw.SizedBox(height: 10),
+                    ],
+                  );
+                }),
+                if (chartImage != null) ...[
+                  pw.SizedBox(height: 20),
+                  pw.Text('Distribución de Inasistencias por Asignatura:',
+                      style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+                  pw.SizedBox(height: 10),
+                  pw.Center(
+                    child: pw.Image(pw.MemoryImage(chartImage), width: 400, height: 400), // Increased size
+                  ),
+                pw.SizedBox(height: 20), // Added space
+                pw.Column( // Added column for percentages
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: _absencesBySubject.entries.map((entry) {
+                    final subject = entry.key;
+                    final count = entry.value.length;
+                    final totalAbsences = _absencesBySubject.values.fold<int>(0, (sum, dates) => sum + dates.length);
+                    final percentage = (count / totalAbsences) * 100;
+                    final color = _subjectColors[subject]!; // Get color from map
+
+                    return pw.Padding(
+                      padding: const pw.EdgeInsets.symmetric(vertical: 4.0),
+                      child: pw.Row(
+                        children: [
+                          pw.Container(
+                            width: 16,
+                            height: 16,
+                            color: PdfColor.fromInt(color.value), // Converted to PdfColor
+                          ),
+                          pw.SizedBox(width: 8),
+                          pw.Text('$subject: $count inasistencias (${percentage.toStringAsFixed(1)}%)'),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+                ],
+              ],
+            ),
+          ]; // MultiPage build returns a List of Widgets
+        },
+      ),
+    );
+
+    final output = await getTemporaryDirectory();
+    final file = File('${output.path}/reporte_${widget.studentName}.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    try {
+      await Share.shareXFiles([XFile(file.path)], text: 'Reporte de inasistencias de ${widget.studentName}');
+    } catch (e) {
+      // Handle the error, e.g., show a SnackBar
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al compartir el PDF: $e')),
+        );
+      }
+    }
   }
 }

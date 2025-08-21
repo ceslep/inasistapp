@@ -5,6 +5,7 @@ import 'package:inasistapp/services/google_sheets_service.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:dio/dio.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 // Paleta de colores profesional
 const Color primaryColor = Color(0xFF0D47A1); // Azul oscuro
@@ -21,7 +22,7 @@ class HomeBody extends StatefulWidget {
   final ValueChanged<bool>? onSendingStateChanged;
 
   @override
-    State<HomeBody> createState() => HomeBodyState();
+  State<HomeBody> createState() => HomeBodyState();
 }
 
 class HomeBodyState extends State<HomeBody> {
@@ -424,7 +425,8 @@ class HomeBodyState extends State<HomeBody> {
               decoration: InputDecoration(
                 labelText: 'Seleccione el grado',
                 border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.school_outlined, color: Color(0xFF0D47A1)),
+                prefixIcon:
+                    Icon(Icons.school_outlined, color: Color(0xFF0D47A1)),
               ),
               value: gradoSeleccionado,
               items: grados
@@ -489,8 +491,8 @@ class HomeBodyState extends State<HomeBody> {
               CheckboxListTile(
                 secondary:
                     const Icon(Icons.person_outline, color: primaryColor),
-                title: Text(estudiante,
-                    style: const TextStyle(color: textColor)),
+                title:
+                    Text(estudiante, style: const TextStyle(color: textColor)),
                 value: isSelected,
                 activeColor: primaryColor,
                 onChanged: (checked) {
@@ -582,28 +584,59 @@ class HomeBodyState extends State<HomeBody> {
         gradoSeleccionado != null &&
         estudiantesSeleccionados.isNotEmpty;
 
-    return ElevatedButton.icon(
-      icon: _isSending
-          ? const SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white))
-          : const Icon(Icons.send, color: Colors.white),
-      label: Text(_isSending ? 'Enviando...' : 'Enviar Inasistencias'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: canSubmit ? primaryColor : Colors.grey,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ElevatedButton.icon(
+          icon: _isSending
+              ? const SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.send, color: Colors.white),
+          label: Text(_isSending ? 'Enviando...' : 'Enviar Inasistencias'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: canSubmit ? primaryColor : Colors.grey,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed:
+              (canSubmit && !_isSending) ? () => submitAbsenceData() : null,
         ),
-      ),
-      onPressed: (canSubmit && !_isSending)
-          ? () => submitAbsenceData()
-          : null,
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          icon: const Icon(Icons.table_chart, color: Colors.white),
+          label: const Text('Abrir Google Sheet'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: successColor,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            textStyle:
+                const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          onPressed: () => _launchURL(),
+        ),
+      ],
     );
+  }
+
+  Future<void> _launchURL() async {
+    const url =
+        'https://docs.google.com/spreadsheets/d/1wN7lp7lOGyxKYIUJ9TU89N9knnJjX2Z_TfsOUg48QpQ';
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      throw 'Could not launch $url';
+    }
   }
 
   Future<void> submitAbsenceData() async {
@@ -614,14 +647,13 @@ class HomeBodyState extends State<HomeBody> {
     });
 
     try {
-      final sheetsService = GoogleSheetsService(
-          '1wN7lp7lOGyxKYIUJ9TU89N9knnJjX2Z_TfsOUg48QpQ',
-          'Inasistencias');
-      await sheetsService.init();
+      final sheetsService = GoogleSheetsService();
+      await sheetsService.init(); // It will load from shared_preferences // It will load from shared_preferences
 
       for (final estudiante in estudiantesSeleccionados) {
         final row = [
-          DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()), // Timestamp for Column A
+          DateFormat('yyyy-MM-dd HH:mm:ss')
+              .format(DateTime.now()), // Timestamp for Column A
           docenteSeleccionado,
           DateFormat('yyyy-MM-dd').format(selectedDate),
           horaSeleccionada!,
@@ -637,8 +669,7 @@ class HomeBodyState extends State<HomeBody> {
       _showSuccessDialog(context);
       _clearForm();
     } catch (e) {
-      _showErrorDialog(
-          context, 'Error al enviar a Google Sheets: $e');
+      _showErrorDialog(context, 'Error al enviar a Google Sheets: $e');
     } finally {
       setState(() {
         _isSending = false;
@@ -724,7 +755,8 @@ class MateriaForm extends StatelessWidget {
                     value: materia,
                     child: Row(
                       children: [
-                        const Icon(Icons.auto_stories, color: successColor, size: 20),
+                        const Icon(Icons.auto_stories,
+                            color: successColor, size: 20),
                         const SizedBox(width: 8),
                         Text(materia),
                       ],
@@ -773,7 +805,7 @@ class DateForm extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: InputDecorator(
-        decoration: InputDecoration(
+        decoration: const InputDecoration(
           labelText: 'Fecha',
           border: OutlineInputBorder(),
           prefixIcon: Icon(Icons.calendar_today_outlined, color: primaryColor),

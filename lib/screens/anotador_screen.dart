@@ -40,6 +40,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
       final response = await Dio()
           .get('https://app.iedeoccidente.com/ig/getAsignaturasAnotador.php');
       if (response.statusCode == 200 && response.data is List) {
+        if (!mounted) return;
         setState(() {
           _asignaturas =
               List<String>.from(response.data.map((e) => e.toString()));
@@ -49,6 +50,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
         throw Exception('Error al obtener las asignaturas');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loadingAsignaturas = false;
       });
@@ -62,6 +64,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
       final response = await Dio()
           .get('https://app.iedeoccidente.com/ig/getOpcionesAnotador.php');
       if (response.statusCode == 200 && response.data is List) {
+        if (!mounted) return;
         setState(() {
           _diarioOptions =
               List<String>.from(response.data.map((e) => e.toString()));
@@ -71,6 +74,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
         throw Exception('Error al obtener las opciones del diario');
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loadingDiarioOptions = false;
       });
@@ -125,6 +129,13 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false);
+          },
+        ),
         title: const Text('Anotador de Clases',
             style: TextStyle(
                 fontWeight: FontWeight.bold,
@@ -444,14 +455,15 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
 
   Future<void> _saveNote() async {
     if (_formKey.currentState!.validate()) {
+      if (!mounted) return;
       setState(() {
         _isSending = true;
       });
 
       try {
-        final sheetsService = GoogleSheetsService(
-            '1wN7lp7lOGyxKYIUJ9TU89N9knnJjX2Z_TfsOUg48QpQ', 'Anotador');
+        final sheetsService = GoogleSheetsService();
         await sheetsService.init();
+        await sheetsService.setAnotadorWorksheet(); // Set the worksheet to Anotador
 
         final row = [
           DateFormat('yyyy-MM-dd HH:mm:ss').format(DateTime.now()), // 1. Marca temporal
@@ -471,6 +483,7 @@ class _AnotadorScreenState extends State<AnotadorScreen> {
         if (!mounted) return;
         _showErrorDialog(context, 'Error al guardar la nota: $e');
       } finally {
+        if (!mounted) return;
         setState(() {
           _isSending = false;
         });

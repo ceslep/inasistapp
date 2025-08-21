@@ -24,15 +24,15 @@ class _StudentsInGroupScreenState extends State<StudentsInGroupScreen> {
   }
 
   Future<void> _fetchStudentsInGroup() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final sheetsService = GoogleSheetsService(
-          '1wN7lp7lOGyxKYIUJ9TU89N9knnJjX2Z_TfsOUg48QpQ', 'Inasistencias');
-      await sheetsService.init();
+      final sheetsService = GoogleSheetsService();
+      await sheetsService.init(); // It will load from shared_preferences
 
       final List<List<dynamic>> rows = await sheetsService.getRows();
 
@@ -69,6 +69,7 @@ class _StudentsInGroupScreenState extends State<StudentsInGroupScreen> {
       _error =
           'Error al cargar estudiantes. Verifique la conexión, los permisos de la hoja de cálculo o el formato de los datos: $e';
     } finally {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -79,6 +80,13 @@ class _StudentsInGroupScreenState extends State<StudentsInGroupScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.home),
+          onPressed: () {
+            Navigator.pushNamedAndRemoveUntil(
+                context, '/home', (route) => false);
+          },
+        ),
         title: Text(
           'Estudiantes en ${widget.groupName}',
           style: const TextStyle(
